@@ -447,7 +447,7 @@
           relayState = !relayState; // Revert state
           alert('Failed to send command');
         } else {
-          console.log(`Relay toggled: ${relayState ? 'ON' : 'OFF'}`);
+          console.log(`Relay toggled: ${relayState ? 'OFF' : 'ON'}`);
           toggleCount++;
           elements.toggleCount.textContent = toggleCount;
         }
