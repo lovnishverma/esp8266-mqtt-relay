@@ -1,8 +1,3 @@
-Here’s your `README.md` optimized for GitHub repository presentation — including markdown formatting, collapsible sections, and badges for better visual structure.
-
----
-
-````markdown
 # 🔌 ESP8266 MQTT Relay Control via HiveMQ Cloud
 
 [![ESP8266](https://img.shields.io/badge/Board-ESP8266-blue)](https://www.espressif.com/en/products/socs/esp8266)
@@ -31,7 +26,8 @@ Control a relay module connected to an ESP8266 using secure **MQTT over TLS** wi
 
 | ESP8266 Local Web Interface | HTML + JS MQTT Dashboard |
 |-----------------------------|---------------------------|
-| ![ESP UI](https://via.placeholder.com/400x200?text=ESP+Web+Relay+UI) | ![Web Dashboard](https://via.placeholder.com/400x200?text=MQTT+Dashboard) |
+| ![Web Dashboard](<img width="797" height="473" alt="image" src="https://github.com/user-attachments/assets/04ce9176-eb2e-4a38-a297-87d658c7f6f6" />
+) |
 
 ---
 
