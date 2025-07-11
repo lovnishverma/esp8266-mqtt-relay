@@ -413,12 +413,27 @@
       elements.lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
     }
 
+    // Audio feedback
+    const clickSound = new Audio('click.mp3');
+    clickSound.preload = 'auto';
+    
+    // Play click sound
+    function playClickSound() {
+      clickSound.currentTime = 0;
+      clickSound.play().catch(err => {
+        console.log('Audio play failed:', err);
+      });
+    }
+
     // Toggle relay function
     function toggleRelay() {
       if (!isConnected || !client) {
         alert('Not connected to MQTT broker');
         return;
       }
+
+      // Play click sound
+      playClickSound();
 
       elements.btnText.textContent = 'Sending...';
       elements.controlBtn.disabled = true;
