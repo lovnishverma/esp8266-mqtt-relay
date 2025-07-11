@@ -24,10 +24,11 @@ Control a relay module connected to an ESP8266 using secure **MQTT over TLS** wi
 
 ## 📷 Screenshots
 
-| ESP8266 Local Web Interface | HTML + JS MQTT Dashboard |
-|-----------------------------|---------------------------|
-| ![Web Dashboard](<img width="797" height="473" alt="image" src="https://github.com/user-attachments/assets/04ce9176-eb2e-4a38-a297-87d658c7f6f6" />
-) |
+## 📷 Screenshots
+
+| ESP8266 Local Web Interface | HTML + JS MQTT Dashboard        |
+|-----------------------------|---------------------------------|
+| *Not Available*             | ![Web Dashboard](https://github.com/user-attachments/assets/04ce9176-eb2e-4a38-a297-87d658c7f6f6) |
 
 ---
 
