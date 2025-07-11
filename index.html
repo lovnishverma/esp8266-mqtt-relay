@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ESP8266 MQTT Relay Control</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: #fff;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+
+    .status {
+      font-size: 1.2rem;
+      margin: 15px 0;
+    }
+
+    .relay-on {
+      color: green;
+      font-weight: bold;
+    }
+
+    .relay-off {
+      color: red;
+      font-weight: bold;
+    }
+
+    .btn {
+      background: #3498db;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #2980b9;
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ESP8266 Relay Control</h1>
+    <div class="status">
+      Relay State: <span id="relayState" class="relay-off">Unknown</span>
+    </div>
+    <button class="btn" onclick="toggleRelay()">Toggle Relay</button>
+    <div class="footer">Connected via Web Interface</div>
+  </div>
+
+  <script>
+    async function updateRelayState() {
+      try {
+        const response = await fetch('/');
+        const html = await response.text();
+        const match = html.match(/Relay State:\s*(ON|OFF)/);
+        if (match && match[1]) {
+          const state = match[1];
+          const relaySpan = document.getElementById('relayState');
+          relaySpan.textContent = state;
+          relaySpan.className = state === 'ON' ? 'relay-on' : 'relay-off';
+        }
+      } catch (err) {
+        console.error("Error updating relay state:", err);
+      }
+    }
+
+    async function toggleRelay() {
+      try {
+        await fetch('/toggle');
+        setTimeout(updateRelayState, 500); // slight delay for relay to toggle
+      } catch (err) {
+        console.error("Failed to toggle relay:", err);
+      }
+    }
+
+    // Initial update
+    window.onload = updateRelayState;
+  </script>
+</body>
+</html>
