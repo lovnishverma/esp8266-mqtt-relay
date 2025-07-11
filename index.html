@@ -4,14 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESP8266 Relay Control Center</title>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js "></script>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -22,11 +21,9 @@
       padding: 20px;
       transition: background 0.5s ease;
     }
-
     body.relay-on {
       background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     }
-
     .container {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
@@ -39,7 +36,6 @@
       position: relative;
       overflow: hidden;
     }
-
     .container::before {
       content: '';
       position: absolute;
@@ -49,7 +45,6 @@
       height: 4px;
       background: linear-gradient(90deg, #667eea, #764ba2);
     }
-
     h1 {
       color: #333;
       margin-bottom: 30px;
@@ -57,7 +52,6 @@
       font-weight: 300;
       letter-spacing: -1px;
     }
-
     .connection-status {
       display: inline-flex;
       align-items: center;
@@ -69,25 +63,21 @@
       margin-bottom: 30px;
       transition: all 0.3s ease;
     }
-
     .connection-status.connected {
       background: #d4edda;
       color: #155724;
       border: 1px solid #c3e6cb;
     }
-
     .connection-status.disconnected {
       background: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
     }
-
     .connection-status.connecting {
       background: #fff3cd;
       color: #856404;
       border: 1px solid #ffeaa7;
     }
-
     .status-indicator {
       width: 8px;
       height: 8px;
@@ -95,13 +85,11 @@
       background: currentColor;
       animation: pulse 2s infinite;
     }
-
     @keyframes pulse {
       0% { opacity: 1; }
       50% { opacity: 0.5; }
       100% { opacity: 1; }
     }
-
     .relay-card {
       background: #fff;
       border-radius: 16px;
@@ -110,7 +98,6 @@
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
       border: 1px solid #e9ecef;
     }
-
     .relay-status {
       font-size: 1.5em;
       font-weight: 600;
@@ -120,15 +107,12 @@
       justify-content: center;
       gap: 12px;
     }
-
     .relay-status.on {
       color: #28a745;
     }
-
     .relay-status.off {
       color: #6c757d;
     }
-
     .power-icon {
       width: 32px;
       height: 32px;
@@ -141,16 +125,13 @@
       color: white;
       transition: all 0.3s ease;
     }
-
     .power-icon.on {
       background: #28a745;
       box-shadow: 0 0 20px rgba(40, 167, 69, 0.4);
     }
-
     .power-icon.off {
       background: #6c757d;
     }
-
     .toggle-btn {
       position: relative;
       width: 80px;
@@ -163,11 +144,9 @@
       outline: none;
       margin-bottom: 20px;
     }
-
     .toggle-btn.on {
       background: #28a745;
     }
-
     .toggle-btn::after {
       content: '';
       position: absolute;
@@ -180,11 +159,9 @@
       transition: all 0.3s ease;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
-
     .toggle-btn.on::after {
       transform: translateX(40px);
     }
-
     .control-button {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
@@ -198,23 +175,19 @@
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
       min-width: 120px;
     }
-
     .control-button:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
     }
-
     .control-button:active {
       transform: translateY(0);
     }
-
     .control-button:disabled {
       background: #ccc;
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
     }
-
     .stats {
       display: flex;
       justify-content: space-around;
@@ -222,47 +195,38 @@
       padding-top: 20px;
       border-top: 1px solid #e9ecef;
     }
-
     .stat-item {
       text-align: center;
     }
-
     .stat-value {
       font-size: 1.5em;
       font-weight: 600;
       color: #333;
     }
-
     .stat-label {
       font-size: 0.9em;
       color: #6c757d;
       margin-top: 4px;
     }
-
     .last-updated {
       font-size: 0.8em;
       color: #6c757d;
       margin-top: 20px;
     }
-
     @media (max-width: 480px) {
       .container {
         padding: 20px;
       }
-      
       h1 {
         font-size: 2em;
       }
-      
       .relay-card {
         padding: 20px;
       }
     }
-
     .fade-in {
       animation: fadeIn 0.5s ease-in;
     }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -272,25 +236,20 @@
 <body>
   <div class="container fade-in">
     <h1>🔌 Relay Control Center</h1>
-    
     <div class="connection-status disconnected" id="connectionStatus">
       <div class="status-indicator"></div>
       <span id="connectionText">Connecting...</span>
     </div>
-
     <div class="relay-card">
       <div class="relay-status off" id="relayStatus">
         <div class="power-icon off" id="powerIcon">⚡</div>
         <span id="statusText">Relay is OFF</span>
       </div>
-      
       <button class="toggle-btn" id="toggleBtn" onclick="toggleRelay()"></button>
-      
       <button class="control-button" id="controlBtn" onclick="toggleRelay()" disabled>
         <span id="btnText">Toggle Relay</span>
       </button>
     </div>
-
     <div class="stats">
       <div class="stat-item">
         <div class="stat-value" id="toggleCount">0</div>
@@ -301,7 +260,6 @@
         <div class="stat-label">Session Time</div>
       </div>
     </div>
-
     <div class="last-updated" id="lastUpdated">
       Never updated
     </div>
@@ -349,17 +307,13 @@
     // Initialize MQTT connection
     function initMQTT() {
       updateConnectionStatus('connecting', 'Connecting...');
-      
       try {
         client = mqtt.connect(MQTT_BROKER, options);
-        
         client.on("connect", () => {
           console.log("Connected to MQTT broker");
           isConnected = true;
           updateConnectionStatus('connected', 'Connected');
           elements.controlBtn.disabled = false;
-          
-          // Subscribe to status topic if needed
           client.subscribe(MQTT_TOPIC + '/status', (err) => {
             if (err) console.error('Subscribe error:', err);
           });
@@ -369,7 +323,7 @@
           if (topic === MQTT_TOPIC + '/status') {
             const status = message.toString();
             if (status === '0' || status === '1') {
-              relayState = status === '1'; // Fixed: '1' means ON, '0' means OFF
+              relayState = status === '1'; // '1' means ON, '0' means OFF
               updateRelayDisplay();
             }
           }
@@ -393,7 +347,6 @@
           console.log("Reconnecting to MQTT broker");
           updateConnectionStatus('connecting', 'Reconnecting...');
         });
-
       } catch (error) {
         console.error("Failed to connect to MQTT broker:", error);
         updateConnectionStatus('disconnected', 'Connection Failed');
@@ -409,27 +362,22 @@
     // Update relay display
     function updateRelayDisplay() {
       const isOn = relayState;
-      
-      // Update body background based on relay state
       if (isOn) {
         document.body.classList.add('relay-on');
       } else {
         document.body.classList.remove('relay-on');
       }
-      
       elements.relayStatus.className = `relay-status ${isOn ? 'on' : 'off'}`;
       elements.powerIcon.className = `power-icon ${isOn ? 'on' : 'off'}`;
       elements.statusText.textContent = `Relay is ${isOn ? 'ON' : 'OFF'}`;
       elements.toggleBtn.className = `toggle-btn ${isOn ? 'on' : ''}`;
-      
       elements.lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
     }
 
     // Audio feedback
     const clickSound = new Audio('click.mp3');
     clickSound.preload = 'auto';
-    
-    // Play click sound
+
     function playClickSound() {
       clickSound.currentTime = 0;
       clickSound.play().catch(err => {
@@ -443,27 +391,24 @@
         alert('Not connected to MQTT broker');
         return;
       }
-
-      // Play click sound
       playClickSound();
-
       elements.btnText.textContent = 'Sending...';
       elements.controlBtn.disabled = true;
 
       relayState = !relayState;
-      const payload = relayState ? "0" : "1";
-      
+
+      const payload = relayState ? "1" : "0"; // 🔥 Fixed inverted logic
+
       client.publish(MQTT_TOPIC, payload, (err) => {
         if (err) {
           console.error('Publish error:', err);
-          relayState = !relayState; // Revert state
+          relayState = !relayState; // Revert state on error
           alert('Failed to send command');
         } else {
           console.log(`Relay toggled: ${relayState ? 'ON' : 'OFF'}`);
           toggleCount++;
           elements.toggleCount.textContent = toggleCount;
         }
-        
         elements.btnText.textContent = 'Toggle Relay';
         elements.controlBtn.disabled = false;
         updateRelayDisplay();
@@ -482,8 +427,6 @@
     function init() {
       initMQTT();
       updateRelayDisplay();
-      
-      // Update uptime every second
       setInterval(updateUptime, 1000);
     }
 
