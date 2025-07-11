@@ -2,73 +2,466 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ESP8266 Relay Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP8266 Relay Control Center</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding-top: 50px;
-      background-color: #f0f0f0;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
     h1 {
       color: #333;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      font-weight: 300;
+      letter-spacing: -1px;
     }
-    .status {
-      font-size: 24px;
+
+    .connection-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 30px;
+      transition: all 0.3s ease;
+    }
+
+    .connection-status.connected {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .connection-status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .connection-status.connecting {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .relay-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e9ecef;
+    }
+
+    .relay-status {
+      font-size: 1.5em;
+      font-weight: 600;
       margin-bottom: 20px;
-      color: green;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
     }
-    button {
-      padding: 15px 30px;
-      font-size: 20px;
-      border: none;
-      background-color: #007BFF;
+
+    .relay-status.on {
+      color: #28a745;
+    }
+
+    .relay-status.off {
+      color: #6c757d;
+    }
+
+    .power-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
       color: white;
-      border-radius: 8px;
-      cursor: pointer;
+      transition: all 0.3s ease;
     }
-    button:hover {
-      background-color: #0056b3;
+
+    .power-icon.on {
+      background: #28a745;
+      box-shadow: 0 0 20px rgba(40, 167, 69, 0.4);
+    }
+
+    .power-icon.off {
+      background: #6c757d;
+    }
+
+    .toggle-btn {
+      position: relative;
+      width: 80px;
+      height: 40px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #ccc;
+      outline: none;
+      margin-bottom: 20px;
+    }
+
+    .toggle-btn.on {
+      background: #28a745;
+    }
+
+    .toggle-btn::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: white;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-btn.on::after {
+      transform: translateX(40px);
+    }
+
+    .control-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      min-width: 120px;
+    }
+
+    .control-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .control-button:active {
+      transform: translateY(0);
+    }
+
+    .control-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5em;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .stat-label {
+      font-size: 0.9em;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+
+    .last-updated {
+      font-size: 0.8em;
+      color: #6c757d;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+      }
+      
+      h1 {
+        font-size: 2em;
+      }
+      
+      .relay-card {
+        padding: 20px;
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <h1>Control ESP8266 Relay</h1>
-  <div class="status" id="status">Relay is OFF</div>
-  <button onclick="toggleRelay()">Toggle Relay</button>
+  <div class="container fade-in">
+    <h1>🔌 Relay Control Center</h1>
+    
+    <div class="connection-status disconnected" id="connectionStatus">
+      <div class="status-indicator"></div>
+      <span id="connectionText">Connecting...</span>
+    </div>
+
+    <div class="relay-card">
+      <div class="relay-status off" id="relayStatus">
+        <div class="power-icon off" id="powerIcon">⚡</div>
+        <span id="statusText">Relay is OFF</span>
+      </div>
+      
+      <button class="toggle-btn" id="toggleBtn" onclick="toggleRelay()"></button>
+      
+      <button class="control-button" id="controlBtn" onclick="toggleRelay()" disabled>
+        <span id="btnText">Toggle Relay</span>
+      </button>
+    </div>
+
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-value" id="toggleCount">0</div>
+        <div class="stat-label">Total Toggles</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="uptime">00:00</div>
+        <div class="stat-label">Session Time</div>
+      </div>
+    </div>
+
+    <div class="last-updated" id="lastUpdated">
+      Never updated
+    </div>
+  </div>
 
   <script>
+    // Configuration
     const MQTT_BROKER = "wss://2332bf283a3042789deec54af864c4d4.s1.eu.hivemq.cloud:8884/mqtt";
     const MQTT_TOPIC = "212";
     const MQTT_USER = "nielit212";
     const MQTT_PASS = "iloveMqtt212";
 
+    // State management
     let relayState = false;
+    let isConnected = false;
+    let toggleCount = 0;
+    let startTime = Date.now();
+    let client = null;
 
+    // DOM elements
+    const elements = {
+      connectionStatus: document.getElementById('connectionStatus'),
+      connectionText: document.getElementById('connectionText'),
+      relayStatus: document.getElementById('relayStatus'),
+      powerIcon: document.getElementById('powerIcon'),
+      statusText: document.getElementById('statusText'),
+      toggleBtn: document.getElementById('toggleBtn'),
+      controlBtn: document.getElementById('controlBtn'),
+      btnText: document.getElementById('btnText'),
+      toggleCount: document.getElementById('toggleCount'),
+      uptime: document.getElementById('uptime'),
+      lastUpdated: document.getElementById('lastUpdated')
+    };
+
+    // MQTT connection options
     const options = {
       username: MQTT_USER,
       password: MQTT_PASS,
       clean: true,
       connectTimeout: 4000,
+      reconnectPeriod: 1000,
+      keepalive: 60
     };
 
-    const client = mqtt.connect(MQTT_BROKER, options);
+    // Initialize MQTT connection
+    function initMQTT() {
+      updateConnectionStatus('connecting', 'Connecting...');
+      
+      try {
+        client = mqtt.connect(MQTT_BROKER, options);
+        
+        client.on("connect", () => {
+          console.log("Connected to MQTT broker");
+          isConnected = true;
+          updateConnectionStatus('connected', 'Connected');
+          elements.controlBtn.disabled = false;
+          
+          // Subscribe to status topic if needed
+          client.subscribe(MQTT_TOPIC + '/status', (err) => {
+            if (err) console.error('Subscribe error:', err);
+          });
+        });
 
-    client.on("connect", () => {
-      console.log("Connected to MQTT broker");
-    });
+        client.on("message", (topic, message) => {
+          if (topic === MQTT_TOPIC + '/status') {
+            const status = message.toString();
+            if (status === '0' || status === '1') {
+              relayState = status === '0';
+              updateRelayDisplay();
+            }
+          }
+        });
 
-    client.on("error", err => {
-      console.error("MQTT connection error:", err);
-    });
+        client.on("error", err => {
+          console.error("MQTT connection error:", err);
+          isConnected = false;
+          updateConnectionStatus('disconnected', 'Connection Error');
+          elements.controlBtn.disabled = true;
+        });
 
+        client.on("close", () => {
+          console.log("MQTT connection closed");
+          isConnected = false;
+          updateConnectionStatus('disconnected', 'Disconnected');
+          elements.controlBtn.disabled = true;
+        });
+
+        client.on("reconnect", () => {
+          console.log("Reconnecting to MQTT broker");
+          updateConnectionStatus('connecting', 'Reconnecting...');
+        });
+
+      } catch (error) {
+        console.error("Failed to connect to MQTT broker:", error);
+        updateConnectionStatus('disconnected', 'Connection Failed');
+      }
+    }
+
+    // Update connection status UI
+    function updateConnectionStatus(status, text) {
+      elements.connectionStatus.className = `connection-status ${status}`;
+      elements.connectionText.textContent = text;
+    }
+
+    // Update relay display
+    function updateRelayDisplay() {
+      const isOn = relayState;
+      
+      elements.relayStatus.className = `relay-status ${isOn ? 'on' : 'off'}`;
+      elements.powerIcon.className = `power-icon ${isOn ? 'on' : 'off'}`;
+      elements.statusText.textContent = `Relay is ${isOn ? 'ON' : 'OFF'}`;
+      elements.toggleBtn.className = `toggle-btn ${isOn ? 'on' : ''}`;
+      
+      elements.lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+    }
+
+    // Toggle relay function
     function toggleRelay() {
+      if (!isConnected || !client) {
+        alert('Not connected to MQTT broker');
+        return;
+      }
+
+      elements.btnText.textContent = 'Sending...';
+      elements.controlBtn.disabled = true;
+
       relayState = !relayState;
       const payload = relayState ? "0" : "1";
-      client.publish(MQTT_TOPIC, payload);
-      document.getElementById("status").innerText = "Relay is " + (relayState ? "OFF" : "ON");
+      
+      client.publish(MQTT_TOPIC, payload, (err) => {
+        if (err) {
+          console.error('Publish error:', err);
+          relayState = !relayState; // Revert state
+          alert('Failed to send command');
+        } else {
+          console.log(`Relay toggled: ${relayState ? 'ON' : 'OFF'}`);
+          toggleCount++;
+          elements.toggleCount.textContent = toggleCount;
+        }
+        
+        elements.btnText.textContent = 'Toggle Relay';
+        elements.controlBtn.disabled = false;
+        updateRelayDisplay();
+      });
     }
+
+    // Update uptime display
+    function updateUptime() {
+      const elapsed = Date.now() - startTime;
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+      elements.uptime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Initialize application
+    function init() {
+      initMQTT();
+      updateRelayDisplay();
+      
+      // Update uptime every second
+      setInterval(updateUptime, 1000);
+    }
+
+    // Start the application
+    init();
   </script>
 </body>
 </html>
