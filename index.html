@@ -20,6 +20,11 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
+      transition: background 0.5s ease;
+    }
+
+    body.relay-on {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     }
 
     .container {
@@ -364,7 +369,7 @@
           if (topic === MQTT_TOPIC + '/status') {
             const status = message.toString();
             if (status === '0' || status === '1') {
-              relayState = status === '0';
+              relayState = status === '1'; // Fixed: '1' means ON, '0' means OFF
               updateRelayDisplay();
             }
           }
@@ -404,6 +409,13 @@
     // Update relay display
     function updateRelayDisplay() {
       const isOn = relayState;
+      
+      // Update body background based on relay state
+      if (isOn) {
+        document.body.classList.add('relay-on');
+      } else {
+        document.body.classList.remove('relay-on');
+      }
       
       elements.relayStatus.className = `relay-status ${isOn ? 'on' : 'off'}`;
       elements.powerIcon.className = `power-icon ${isOn ? 'on' : 'off'}`;
@@ -447,7 +459,7 @@
           relayState = !relayState; // Revert state
           alert('Failed to send command');
         } else {
-          console.log(`Relay toggled: ${relayState ? 'OFF' : 'ON'}`);
+          console.log(`Relay toggled: ${relayState ? 'ON' : 'OFF'}`);
           toggleCount++;
           elements.toggleCount.textContent = toggleCount;
         }
