@@ -67,7 +67,7 @@
       relayState = !relayState;
       const payload = relayState ? "0" : "1";
       client.publish(MQTT_TOPIC, payload);
-      document.getElementById("status").innerText = "Relay is " + (relayState ? "ON" : "OFF");
+      document.getElementById("status").innerText = "Relay is " + (relayState ? "OFF" : "ON");
     }
   </script>
 </body>
