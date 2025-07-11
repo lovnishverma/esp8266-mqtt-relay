@@ -168,7 +168,5 @@ Feel free to use, modify, and distribute.
 
 > 🎓 “With great MQTT comes great IoT control.”
 
-```
-
 ---
 
