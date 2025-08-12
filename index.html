@@ -3,27 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP8266 Relay Control Center</title>
-  <!-- Favicon -->
+  <title>ESP8266 Smart Relay Control Center</title>
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
   <link rel="manifest" href="/favicon/site.webmanifest">
-  <link rel="mask-icon" href="/favicon/safari-pinned-tab.svg" color="#5bbad5">
-  <link rel="shortcut icon" href="/favicon/favicon.ico">
-  <meta name="msapplication-TileColor" content="#da532c">
-  <meta name="msapplication-config" content="/favicon/browserconfig.xml">
-  <meta name="theme-color" content="#ffffff">
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js "></script>
+  <meta name="theme-color" content="#667eea">
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
+
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --info-color: #17a2b8;
+      --light-color: #f8f9fa;
+      --dark-color: #343a40;
+      --border-radius: 16px;
+      --box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      background: var(--primary-gradient);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -31,21 +40,39 @@
       padding: 20px;
       transition: background 0.5s ease;
     }
+
     body.relay-on {
       background: linear-gradient(135deg, #FED141 0%, #FF9800 100%);
     }
+
+    body.dark-mode {
+      background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    }
+
+    body.dark-mode.relay-on {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    }
+
     .container {
       background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
       padding: 40px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--box-shadow);
       text-align: center;
-      max-width: 500px;
+      max-width: 600px;
       width: 100%;
       position: relative;
       overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
+
+    .dark-mode .container {
+      background: rgba(45, 55, 72, 0.95);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
     .container::before {
       content: '';
       position: absolute;
@@ -53,222 +80,442 @@
       left: 0;
       right: 0;
       height: 4px;
-      background: linear-gradient(90deg, #667eea, #764ba2);
+      background: var(--primary-gradient);
     }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
     h1 {
       color: #333;
-      margin-bottom: 30px;
       font-size: 2.5em;
       font-weight: 300;
       letter-spacing: -1px;
+      margin: 0;
     }
+
+    .dark-mode h1 {
+      color: white;
+    }
+
+    .theme-toggle {
+      background: none;
+      border: 2px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      font-size: 20px;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-toggle:hover {
+      background: #667eea;
+      color: white;
+      transform: rotate(180deg);
+    }
+
     .connection-status {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 20px;
+      gap: 10px;
+      padding: 12px 20px;
+      border-radius: 25px;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       margin-bottom: 30px;
-      transition: all 0.3s ease;
+      transition: var(--transition);
+      min-width: 150px;
     }
+
     .connection-status.connected {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+      background: rgba(40, 167, 69, 0.1);
+      color: var(--success-color);
+      border: 2px solid rgba(40, 167, 69, 0.2);
     }
+
     .connection-status.disconnected {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+      background: rgba(220, 53, 69, 0.1);
+      color: var(--danger-color);
+      border: 2px solid rgba(220, 53, 69, 0.2);
     }
+
     .connection-status.connecting {
-      background: #fff3cd;
+      background: rgba(255, 193, 7, 0.1);
       color: #856404;
-      border: 1px solid #ffeaa7;
+      border: 2px solid rgba(255, 193, 7, 0.2);
     }
+
     .status-indicator {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
       background: currentColor;
       animation: pulse 2s infinite;
     }
+
     @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
     }
+
     .relay-card {
-      background: #fff;
-      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: var(--border-radius);
       padding: 30px;
       margin-bottom: 30px;
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-      border: 1px solid #e9ecef;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
     }
+
+    .dark-mode .relay-card {
+      background: rgba(45, 55, 72, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
     .relay-status {
-      font-size: 1.5em;
-      font-weight: 600;
-      margin-bottom: 20px;
+      font-size: 1.8em;
+      font-weight: 700;
+      margin-bottom: 25px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
+
     .relay-status.on {
-      color: #28a745;
+      color: var(--success-color);
     }
+
     .relay-status.off {
       color: #6c757d;
     }
+
     .power-icon {
-      width: 32px;
-      height: 32px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      font-weight: bold;
+      font-size: 24px;
       color: white;
-      transition: all 0.3s ease;
+      transition: var(--transition);
+      position: relative;
     }
+
     .power-icon.on {
-      background: #28a745;
-      box-shadow: 0 0 20px rgba(40, 167, 69, 0.4);
+      background: var(--success-color);
+      box-shadow: 0 0 30px rgba(40, 167, 69, 0.5);
+      animation: glow 2s ease-in-out infinite alternate;
     }
+
     .power-icon.off {
       background: #6c757d;
     }
+
+    @keyframes glow {
+      from { box-shadow: 0 0 20px rgba(40, 167, 69, 0.5); }
+      to { box-shadow: 0 0 40px rgba(40, 167, 69, 0.8); }
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin: 25px 0;
+    }
+
+    .voice-controls {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
     .toggle-btn {
       position: relative;
-      width: 80px;
-      height: 40px;
+      width: 100px;
+      height: 50px;
       border: none;
-      border-radius: 20px;
+      border-radius: 25px;
       cursor: pointer;
-      transition: all 0.3s ease;
-      background: #ccc;
+      transition: var(--transition);
+      background: #ddd;
       outline: none;
-      margin-bottom: 20px;
+      margin: 20px auto;
+      display: block;
     }
+
     .toggle-btn.on {
-      background: #28a745;
+      background: var(--success-color);
     }
+
     .toggle-btn::after {
       content: '';
       position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 36px;
-      height: 36px;
+      top: 3px;
+      left: 3px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: white;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      transition: var(--transition);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
+
     .toggle-btn.on::after {
-      transform: translateX(40px);
+      transform: translateX(50px);
     }
+
     .control-button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--primary-gradient);
       color: white;
       border: none;
-      padding: 15px 30px;
+      padding: 15px 25px;
       font-size: 16px;
       font-weight: 600;
       border-radius: 12px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: var(--transition);
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-      min-width: 120px;
+      min-width: 140px;
+      position: relative;
+      overflow: hidden;
     }
+
     .control-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
+
     .control-button:active {
-      transform: translateY(0);
+      transform: translateY(-1px);
     }
+
     .control-button:disabled {
       background: #ccc;
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
     }
-    .stats {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e9ecef;
+
+    .control-button.recording {
+      animation: recording-pulse 1s ease-in-out infinite;
     }
+
+    @keyframes recording-pulse {
+      0%, 100% { background-color: #dc3545; }
+      50% { background-color: #ff4757; }
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 20px;
+      margin: 30px 0 20px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: var(--border-radius);
+      backdrop-filter: blur(10px);
+    }
+
+    .dark-mode .stats {
+      background: rgba(45, 55, 72, 0.5);
+    }
+
     .stat-item {
       text-align: center;
     }
+
     .stat-value {
-      font-size: 1.5em;
-      font-weight: 600;
+      font-size: 2em;
+      font-weight: 700;
       color: #333;
+      line-height: 1;
     }
+
+    .dark-mode .stat-value {
+      color: white;
+    }
+
     .stat-label {
+      font-size: 0.85em;
+      color: #6c757d;
+      margin-top: 8px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .last-updated {
       font-size: 0.9em;
       color: #6c757d;
-      margin-top: 4px;
+      margin: 15px 0;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      backdrop-filter: blur(5px);
     }
-    .last-updated {
-      font-size: 0.8em;
-      color: #6c757d;
+
+    .footer {
       margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(108, 117, 125, 0.2);
+      font-size: 0.85em;
+      color: #6c757d;
     }
-    @media (max-width: 480px) {
+
+    .voice-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      background: rgba(23, 162, 184, 0.1);
+      color: var(--info-color);
+      border: 1px solid rgba(23, 162, 184, 0.2);
+    }
+
+    .voice-status.listening {
+      background: rgba(40, 167, 69, 0.1);
+      color: var(--success-color);
+      border-color: rgba(40, 167, 69, 0.2);
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      z-index: 1000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.success { background: var(--success-color); }
+    .notification.error { background: var(--danger-color); }
+    .notification.info { background: var(--info-color); }
+
+    @media (max-width: 600px) {
       .container {
-        padding: 20px;
+        padding: 25px 20px;
+        margin: 10px;
       }
+      
+      .header {
+        flex-direction: column;
+        gap: 15px;
+      }
+      
       h1 {
         font-size: 2em;
       }
-      .relay-card {
-        padding: 20px;
+      
+      .voice-controls {
+        flex-direction: column;
+      }
+      
+      .control-button {
+        width: 100%;
+      }
+      
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
+
     .fade-in {
-      animation: fadeIn 0.5s ease-in;
+      animation: fadeIn 0.8s ease-out;
     }
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { 
+        opacity: 0; 
+        transform: translateY(30px) scale(0.95);
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
   <div class="container fade-in">
-    <h1>🔌 Relay Control Center</h1>
+    <div class="header">
+      <h1>🔌 Smart Relay Hub</h1>
+      <button class="theme-toggle" id="themeToggle" title="Toggle Dark Mode">🌙</button>
+    </div>
+
     <div class="connection-status disconnected" id="connectionStatus">
       <div class="status-indicator"></div>
       <span id="connectionText">Connecting...</span>
     </div>
+
+    <div class="voice-status" id="voiceStatus">
+      <div class="status-indicator"></div>
+      <span>Voice Recognition Ready</span>
+    </div>
+
     <div class="relay-card">
       <div class="relay-status off" id="relayStatus">
         <div class="power-icon off" id="powerIcon">⚡</div>
         <span id="statusText">Relay is OFF</span>
       </div>
-      <div>
-        <button class="control-button" id="startVoiceRecognition">
-  🎤 Start Voice Recognition
-</button>
 
+      <div class="controls-grid">
+        <div class="voice-controls">
+          <button class="control-button" id="startVoiceBtn">
+            🎤 Start Voice Control
+          </button>
+          <button class="control-button" id="stopVoiceBtn" style="display: none;">
+            🔇 Stop Voice Control
+          </button>
+        </div>
+
+        <button class="toggle-btn" id="toggleBtn" onclick="toggleRelay()"></button>
+
+        <button class="control-button" id="controlBtn" onclick="toggleRelay()" disabled>
+          <span id="btnText">Toggle Relay</span>
+        </button>
       </div>
-      <br>
-      <div>
-      <button class="toggle-btn" id="toggleBtn" onclick="toggleRelay()"></button>
-      </div> <br>
-      <button class="control-button" id="controlBtn" onclick="toggleRelay()" disabled>
-        <span id="btnText">Toggle Relay</span>
-      </button>
     </div>
+
     <div class="stats">
       <div class="stat-item">
         <div class="stat-value" id="toggleCount">0</div>
@@ -278,117 +525,359 @@
         <div class="stat-value" id="uptime">00:00</div>
         <div class="stat-label">Session Time</div>
       </div>
+      <div class="stat-item">
+        <div class="stat-value" id="voiceCommands">0</div>
+        <div class="stat-label">Voice Commands</div>
+      </div>
     </div>
+
     <div class="last-updated" id="lastUpdated">
       Never updated
     </div>
-     <div class="last-updated">
-      Created by NIELIT Chandigarh.
+
+    <div class="footer">
+      <div>🚀 Created by NIELIT Chandigarh</div>
+      <div style="margin-top: 5px;">
+        <small>Enhanced Smart IoT Control System</small>
+      </div>
     </div>
   </div>
 
+  <!-- Notification container -->
+  <div id="notification" class="notification"></div>
+
   <script>
-    // Configuration
-    const MQTT_BROKER = "wss://2332bf283a3042789deec54af864c4d4.s1.eu.hivemq.cloud:8884/mqtt";
-    const MQTT_TOPIC = "212";
-    const MQTT_USER = "nielit212";
-    const MQTT_PASS = "iloveMqtt212";
+    // Enhanced Configuration
+    const CONFIG = {
+      MQTT_BROKER: "wss://2332bf283a3042789deec54af864c4d4.s1.eu.hivemq.cloud:8884/mqtt",
+      MQTT_TOPIC: "212",
+      MQTT_USER: "nielit212",
+      MQTT_PASS: "iloveMqtt212",
+      RECONNECT_DELAY: 1000,
+      MAX_RECONNECT_ATTEMPTS: 10,
+      HEARTBEAT_INTERVAL: 30000
+    };
 
-    // State management
-    let relayState = false;
-    let isConnected = false;
-    let toggleCount = 0;
-    let startTime = Date.now();
-    let client = null;
+    // Enhanced State Management
+    const state = {
+      relay: false,
+      connected: false,
+      connecting: false,
+      toggleCount: parseInt(localStorage.getItem('toggleCount') || '0'),
+      voiceCommands: parseInt(localStorage.getItem('voiceCommands') || '0'),
+      startTime: Date.now(),
+      client: null,
+      recognition: null,
+      isListening: false,
+      darkMode: localStorage.getItem('darkMode') === 'true',
+      reconnectAttempts: 0
+    };
 
-    // DOM elements
+    // DOM Elements Cache
     const elements = {
       connectionStatus: document.getElementById('connectionStatus'),
       connectionText: document.getElementById('connectionText'),
+      voiceStatus: document.getElementById('voiceStatus'),
       relayStatus: document.getElementById('relayStatus'),
       powerIcon: document.getElementById('powerIcon'),
       statusText: document.getElementById('statusText'),
       toggleBtn: document.getElementById('toggleBtn'),
       controlBtn: document.getElementById('controlBtn'),
       btnText: document.getElementById('btnText'),
+      startVoiceBtn: document.getElementById('startVoiceBtn'),
+      stopVoiceBtn: document.getElementById('stopVoiceBtn'),
       toggleCount: document.getElementById('toggleCount'),
       uptime: document.getElementById('uptime'),
-      lastUpdated: document.getElementById('lastUpdated')
+      voiceCommands: document.getElementById('voiceCommands'),
+      lastUpdated: document.getElementById('lastUpdated'),
+      themeToggle: document.getElementById('themeToggle'),
+      notification: document.getElementById('notification')
     };
 
-    // MQTT connection options
-    const options = {
-      username: MQTT_USER,
-      password: MQTT_PASS,
-      clean: true,
-      connectTimeout: 4000,
-      reconnectPeriod: 1000,
-      keepalive: 60
-    };
+    // Enhanced MQTT Connection
+    const mqtt = {
+      options: {
+        username: CONFIG.MQTT_USER,
+        password: CONFIG.MQTT_PASS,
+        clean: true,
+        connectTimeout: 4000,
+        reconnectPeriod: CONFIG.RECONNECT_DELAY,
+        keepalive: 60,
+        will: {
+          topic: CONFIG.MQTT_TOPIC + '/status',
+          payload: 'offline',
+          qos: 1,
+          retain: true
+        }
+      },
 
-    // Initialize MQTT connection
-    function initMQTT() {
-      updateConnectionStatus('connecting', 'Connecting...');
-      try {
-        client = mqtt.connect(MQTT_BROKER, options);
-        client.on("connect", () => {
-          console.log("Connected to MQTT broker");
-          isConnected = true;
+      connect() {
+        if (state.connecting) return;
+        
+        state.connecting = true;
+        updateConnectionStatus('connecting', 'Connecting...');
+        
+        try {
+          state.client = window.mqtt.connect(CONFIG.MQTT_BROKER, this.options);
+          this.setupEventHandlers();
+        } catch (error) {
+          console.error('MQTT connection failed:', error);
+          updateConnectionStatus('disconnected', 'Connection Failed');
+          this.scheduleReconnect();
+        }
+      },
+
+      setupEventHandlers() {
+        state.client.on('connect', () => {
+          console.log('✅ Connected to MQTT broker');
+          state.connected = true;
+          state.connecting = false;
+          state.reconnectAttempts = 0;
+          
           updateConnectionStatus('connected', 'Connected');
           elements.controlBtn.disabled = false;
-          client.subscribe(MQTT_TOPIC + '/status', (err) => {
-            if (err) console.error('Subscribe error:', err);
+          
+          // Subscribe to status updates
+          state.client.subscribe(CONFIG.MQTT_TOPIC + '/status', (err) => {
+            if (err) {
+              console.error('❌ Subscribe error:', err);
+              showNotification('Subscription failed', 'error');
+            } else {
+              console.log('📡 Subscribed to status updates');
+            }
           });
+
+          // Send heartbeat
+          this.sendHeartbeat();
+          showNotification('Connected to MQTT broker', 'success');
         });
 
-        client.on("message", (topic, message) => {
-          if (topic === MQTT_TOPIC + '/status') {
+        state.client.on('message', (topic, message) => {
+          if (topic === CONFIG.MQTT_TOPIC + '/status') {
             const status = message.toString();
             if (status === '0' || status === '1') {
-              relayState = status === '1'; // '1' means ON, '0' means OFF
-              updateRelayDisplay();
+              const newState = status === '1';
+              if (state.relay !== newState) {
+                state.relay = newState;
+                updateRelayDisplay();
+                showNotification(`Relay turned ${newState ? 'ON' : 'OFF'}`, 'info');
+              }
             }
           }
         });
 
-        client.on("error", err => {
-          console.error("MQTT connection error:", err);
-          isConnected = false;
+        state.client.on('error', (err) => {
+          console.error('❌ MQTT error:', err);
+          state.connected = false;
+          state.connecting = false;
           updateConnectionStatus('disconnected', 'Connection Error');
           elements.controlBtn.disabled = true;
+          showNotification('MQTT connection error', 'error');
+          this.scheduleReconnect();
         });
 
-        client.on("close", () => {
-          console.log("MQTT connection closed");
-          isConnected = false;
+        state.client.on('close', () => {
+          console.log('🔌 MQTT connection closed');
+          state.connected = false;
+          state.connecting = false;
           updateConnectionStatus('disconnected', 'Disconnected');
           elements.controlBtn.disabled = true;
+          this.scheduleReconnect();
         });
 
-        client.on("reconnect", () => {
-          console.log("Reconnecting to MQTT broker");
+        state.client.on('reconnect', () => {
+          console.log('🔄 Reconnecting to MQTT broker');
           updateConnectionStatus('connecting', 'Reconnecting...');
         });
-      } catch (error) {
-        console.error("Failed to connect to MQTT broker:", error);
-        updateConnectionStatus('disconnected', 'Connection Failed');
-      }
-    }
+      },
 
-    // Update connection status UI
+      scheduleReconnect() {
+        if (state.reconnectAttempts >= CONFIG.MAX_RECONNECT_ATTEMPTS) {
+          showNotification('Max reconnection attempts reached', 'error');
+          return;
+        }
+
+        state.reconnectAttempts++;
+        setTimeout(() => {
+          if (!state.connected) {
+            console.log(`🔄 Reconnection attempt ${state.reconnectAttempts}`);
+            this.connect();
+          }
+        }, CONFIG.RECONNECT_DELAY * state.reconnectAttempts);
+      },
+
+      sendHeartbeat() {
+        if (state.connected && state.client) {
+          state.client.publish(CONFIG.MQTT_TOPIC + '/heartbeat', 'ping', (err) => {
+            if (err) console.error('❌ Heartbeat failed:', err);
+          });
+          
+          setTimeout(() => this.sendHeartbeat(), CONFIG.HEARTBEAT_INTERVAL);
+        }
+      }
+    };
+
+    // Enhanced Voice Recognition
+    const voice = {
+      recognition: null,
+      isSupported: false,
+
+      init() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+          console.warn('⚠️ Speech recognition not supported');
+          elements.startVoiceBtn.textContent = '❌ Not Supported';
+          elements.startVoiceBtn.disabled = true;
+          return;
+        }
+
+        this.isSupported = true;
+        this.recognition = new SpeechRecognition();
+        this.recognition.continuous = true;
+        this.recognition.interimResults = false;
+        this.recognition.lang = 'en-US';
+
+        this.setupEventHandlers();
+      },
+
+      setupEventHandlers() {
+        this.recognition.onstart = () => {
+          console.log('🎤 Voice recognition started');
+          state.isListening = true;
+          this.updateVoiceUI();
+          this.speak('Voice control activated');
+        };
+
+        this.recognition.onend = () => {
+          console.log('🔇 Voice recognition ended');
+          state.isListening = false;
+          this.updateVoiceUI();
+        };
+
+        this.recognition.onerror = (event) => {
+          console.error('❌ Voice recognition error:', event.error);
+          state.isListening = false;
+          this.updateVoiceUI();
+          
+          if (event.error === 'not-allowed') {
+            showNotification('Microphone access denied', 'error');
+          } else if (event.error === 'no-speech') {
+            showNotification('No speech detected', 'info');
+          }
+        };
+
+        this.recognition.onresult = (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+          console.log('🗣️ Voice command:', transcript);
+          
+          state.voiceCommands++;
+          elements.voiceCommands.textContent = state.voiceCommands;
+          localStorage.setItem('voiceCommands', state.voiceCommands.toString());
+          
+          this.processCommand(transcript);
+        };
+      },
+
+      processCommand(transcript) {
+        const commands = {
+          'turn on': () => this.toggleRelay(true),
+          'turn off': () => this.toggleRelay(false),
+          'switch on': () => this.toggleRelay(true),
+          'switch off': () => this.toggleRelay(false),
+          'on': () => this.toggleRelay(true),
+          'off': () => this.toggleRelay(false),
+          'toggle': () => toggleRelay(),
+          'status': () => this.speak(`Relay is currently ${state.relay ? 'ON' : 'OFF'}`),
+          'check status': () => this.speak(`Relay is currently ${state.relay ? 'ON' : 'OFF'}`),
+          'time': () => this.speakTime(),
+          'hello': () => this.speak('Hello! I am your smart relay assistant. How can I help you?'),
+          'help': () => this.speak('You can say: turn on, turn off, toggle, status, time, or hello'),
+          'thank you': () => this.speak('You are welcome! Happy to help.'),
+          'stop': () => this.stop(),
+          'quit': () => this.stop()
+        };
+
+        let commandFound = false;
+        for (const [command, action] of Object.entries(commands)) {
+          if (transcript.includes(command)) {
+            action();
+            commandFound = true;
+            break;
+          }
+        }
+
+        if (!commandFound) {
+          this.speak('Sorry, I did not understand that command. Try saying help for available commands.');
+        }
+      },
+
+      toggleRelay(targetState) {
+        if (targetState === undefined) {
+          toggleRelay();
+        } else if (targetState !== state.relay) {
+          toggleRelay();
+        }
+        
+        this.speak(`Turning relay ${targetState ? 'on' : 'off'}`);
+      },
+
+      speak(message) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(message);
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+          speechSynthesis.speak(utterance);
+        }
+      },
+
+      speakTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        this.speak(`The current time is ${timeString}`);
+      },
+
+      start() {
+        if (this.isSupported && this.recognition && !state.isListening) {
+          this.recognition.start();
+        }
+      },
+
+      stop() {
+        if (this.recognition && state.isListening) {
+          this.recognition.stop();
+          this.speak('Voice control deactivated');
+        }
+      },
+
+      updateVoiceUI() {
+        if (state.isListening) {
+          elements.voiceStatus.className = 'voice-status listening';
+          elements.voiceStatus.innerHTML = '<div class="status-indicator"></div><span>Listening...</span>';
+          elements.startVoiceBtn.style.display = 'none';
+          elements.stopVoiceBtn.style.display = 'inline-block';
+          elements.startVoiceBtn.classList.add('recording');
+        } else {
+          elements.voiceStatus.className = 'voice-status';
+          elements.voiceStatus.innerHTML = '<div class="status-indicator"></div><span>Voice Recognition Ready</span>';
+          elements.startVoiceBtn.style.display = 'inline-block';
+          elements.stopVoiceBtn.style.display = 'none';
+          elements.startVoiceBtn.classList.remove('recording');
+        }
+      }
+    };
+
+    // UI Functions
     function updateConnectionStatus(status, text) {
       elements.connectionStatus.className = `connection-status ${status}`;
       elements.connectionText.textContent = text;
     }
 
-    // Update relay display
     function updateRelayDisplay() {
-      const isOn = relayState;
-      if (isOn) {
-        document.body.classList.add('relay-on');
-      } else {
-        document.body.classList.remove('relay-on');
-      }
+      const isOn = state.relay;
+      
+      document.body.classList.toggle('relay-on', isOn);
       elements.relayStatus.className = `relay-status ${isOn ? 'on' : 'off'}`;
       elements.powerIcon.className = `power-icon ${isOn ? 'on' : 'off'}`;
       elements.statusText.textContent = `Relay is ${isOn ? 'ON' : 'OFF'}`;
@@ -396,148 +885,258 @@
       elements.lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
     }
 
-    // Audio feedback
-    const clickSound = new Audio('click.mp3');
-    clickSound.preload = 'auto';
-
-    function playClickSound() {
-      clickSound.currentTime = 0;
-      clickSound.play().catch(err => {
-        console.log('Audio play failed:', err);
-      });
-    }
-
-    // Toggle relay function
     function toggleRelay() {
-      if (!isConnected || !client) {
-        alert('Not connected to MQTT broker');
+      if (!state.connected || !state.client) {
+        showNotification('Not connected to MQTT broker', 'error');
         return;
       }
+
+      // Play click feedback
       playClickSound();
-      elements.btnText.textContent = 'Sending...';
+      
+      // Update UI to show loading state
+      elements.btnText.innerHTML = '<div class="loading"></div> Sending...';
       elements.controlBtn.disabled = true;
+      elements.toggleBtn.style.opacity = '0.6';
 
-      relayState = !relayState;
+      // Toggle state
+      const newState = !state.relay;
+      const payload = newState ? "1" : "0";
 
-      const payload = relayState ? "1" : "0"; // 🔥 Fixed inverted logic
-
-      client.publish(MQTT_TOPIC, payload, (err) => {
+      // Publish MQTT message
+      state.client.publish(CONFIG.MQTT_TOPIC, payload, (err) => {
         if (err) {
-          console.error('Publish error:', err);
-          relayState = !relayState; // Revert state on error
-          alert('Failed to send command');
+          console.error('❌ Publish error:', err);
+          showNotification('Failed to send command', 'error');
         } else {
-          console.log(`Relay toggled: ${relayState ? 'ON' : 'OFF'}`);
-          toggleCount++;
-          elements.toggleCount.textContent = toggleCount;
+          console.log(`📡 Relay command sent: ${newState ? 'ON' : 'OFF'}`);
+          state.relay = newState;
+          state.toggleCount++;
+          
+          // Update UI
+          elements.toggleCount.textContent = state.toggleCount;
+          localStorage.setItem('toggleCount', state.toggleCount.toString());
+          updateRelayDisplay();
+          
+          showNotification(`Relay turned ${newState ? 'ON' : 'OFF'}`, 'success');
         }
+        
+        // Reset button state
         elements.btnText.textContent = 'Toggle Relay';
         elements.controlBtn.disabled = false;
-        updateRelayDisplay();
+        elements.toggleBtn.style.opacity = '1';
       });
     }
 
-    // Update uptime display
+    function playClickSound() {
+      // Create a simple click sound using Web Audio API
+      if ('AudioContext' in window || 'webkitAudioContext' in window) {
+        try {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+          
+          gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+          
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.1);
+        } catch (error) {
+          console.log('Audio feedback not available');
+        }
+      }
+    }
+
+    function showNotification(message, type = 'info') {
+      elements.notification.textContent = message;
+      elements.notification.className = `notification ${type}`;
+      elements.notification.classList.add('show');
+
+      setTimeout(() => {
+        elements.notification.classList.remove('show');
+      }, 3000);
+    }
+
     function updateUptime() {
-      const elapsed = Date.now() - startTime;
-      const minutes = Math.floor(elapsed / 60000);
+      const elapsed = Date.now() - state.startTime;
+      const hours = Math.floor(elapsed / 3600000);
+      const minutes = Math.floor((elapsed % 3600000) / 60000);
       const seconds = Math.floor((elapsed % 60000) / 1000);
-      elements.uptime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
+      if (hours > 0) {
+        elements.uptime.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      } else {
+        elements.uptime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
     }
 
-    // Initialize application
+    function toggleTheme() {
+      state.darkMode = !state.darkMode;
+      document.body.classList.toggle('dark-mode', state.darkMode);
+      elements.themeToggle.textContent = state.darkMode ? '☀️' : '🌙';
+      localStorage.setItem('darkMode', state.darkMode.toString());
+      
+      showNotification(`Switched to ${state.darkMode ? 'dark' : 'light'} theme`, 'info');
+    }
+
+    function initializeUI() {
+      // Set initial values
+      elements.toggleCount.textContent = state.toggleCount;
+      elements.voiceCommands.textContent = state.voiceCommands;
+      
+      // Apply saved theme
+      if (state.darkMode) {
+        document.body.classList.add('dark-mode');
+        elements.themeToggle.textContent = '☀️';
+      }
+      
+      // Setup event listeners
+      elements.themeToggle.addEventListener('click', toggleTheme);
+      
+      elements.startVoiceBtn.addEventListener('click', () => {
+        voice.start();
+      });
+      
+      elements.stopVoiceBtn.addEventListener('click', () => {
+        voice.stop();
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) return; // Ignore system shortcuts
+        
+        switch(e.key.toLowerCase()) {
+          case ' ': // Spacebar
+            e.preventDefault();
+            toggleRelay();
+            break;
+          case 'v': // V key for voice
+            e.preventDefault();
+            if (state.isListening) {
+              voice.stop();
+            } else {
+              voice.start();
+            }
+            break;
+          case 't': // T key for theme
+            e.preventDefault();
+            toggleTheme();
+            break;
+          case 's': // S key for status
+            e.preventDefault();
+            voice.speak(`Relay is currently ${state.relay ? 'ON' : 'OFF'}`);
+            break;
+        }
+      });
+
+      // Handle page visibility changes
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && state.isListening) {
+          voice.stop();
+        }
+      });
+
+      // Handle beforeunload to save state
+      window.addEventListener('beforeunload', () => {
+        localStorage.setItem('toggleCount', state.toggleCount.toString());
+        localStorage.setItem('voiceCommands', state.voiceCommands.toString());
+        localStorage.setItem('darkMode', state.darkMode.toString());
+      });
+    }
+
+    function checkBrowserSupport() {
+      const features = {
+        mqtt: typeof window.mqtt !== 'undefined',
+        speechRecognition: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
+        speechSynthesis: 'speechSynthesis' in window,
+        localStorage: 'localStorage' in window,
+        audioContext: 'AudioContext' in window || 'webkitAudioContext' in window
+      };
+
+      console.log('🔍 Browser feature support:', features);
+
+      if (!features.mqtt) {
+        showNotification('MQTT library not loaded', 'error');
+        return false;
+      }
+
+      if (!features.speechRecognition) {
+        console.warn('⚠️ Speech recognition not supported in this browser');
+      }
+
+      if (!features.speechSynthesis) {
+        console.warn('⚠️ Speech synthesis not supported in this browser');
+      }
+
+      return true;
+    }
+
+    // Enhanced initialization
     function init() {
-      initMQTT();
+      console.log('🚀 Initializing Smart Relay Control Center...');
+      
+      if (!checkBrowserSupport()) {
+        return;
+      }
+
+      // Initialize components
+      initializeUI();
+      voice.init();
       updateRelayDisplay();
+      
+      // Connect to MQTT
+      mqtt.connect();
+      
+      // Start uptime counter
       setInterval(updateUptime, 1000);
+      
+      // Initial update
+      updateUptime();
+      
+      // Show welcome message
+      setTimeout(() => {
+        showNotification('Smart Relay Control Center loaded successfully!', 'success');
+      }, 1000);
+
+      console.log('✅ Initialization complete');
     }
 
-    // Start the application
-    init();
+    // Error handling
+    window.addEventListener('error', (e) => {
+      console.error('💥 Global error:', e.error);
+      showNotification('An error occurred. Check console for details.', 'error');
+    });
+
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('💥 Unhandled promise rejection:', e.reason);
+      showNotification('A network error occurred.', 'error');
+    });
+
+    // Start the application when DOM is loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+    // Development helpers (remove in production)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      window.relayController = {
+        state,
+        mqtt,
+        voice,
+        toggleRelay,
+        showNotification,
+        toggleTheme
+      };
+      console.log('🛠️ Development mode: relayController object available in console');
+    }
   </script>
-        <script>
-  // Voice Recognition Setup
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.lang = 'en-US';
-
-  // Speak function
-  function speak(message) {
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(message);
-    synth.speak(utterance);
-  }
-
-  // Speak current time
-  function speakTime() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString();
-    speak(`The current time is ${timeString}`);
-  }
-
-  // Check MQTT relay status
-  function checkStatus() {
-    speak(`Right now relay is ${relayState ? 'ON' : 'OFF'}`);
-  }
-
-  // Voice command handler
-  recognition.onresult = function (event) {
-    const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-    console.log('Voice input:', transcript);
-
-    if (transcript.includes('turn on') || transcript.includes('on')) {
-      if (!relayState) toggleRelay();
-      speak('Turning relay on');
-    } else if (transcript.includes('turn off') || transcript.includes('off')) {
-      if (relayState) toggleRelay();
-      speak('Turning relay off');
-    } else if (transcript.includes('check status') || transcript.includes('status')) {
-      checkStatus();
-    } else if (transcript.includes('developer')) {
-      speak('इस ऐप का डेवलपर NIELIT ROPAR है');
-    } else if (transcript.includes('hello')) {
-      speak('हां भाई जी, बोलो?');
-    } else if (transcript.includes('how are you') || transcript.includes('kya haal hai')) {
-      speak('मैं ठीक हूं, धन्यवाद! आपका कैसे सहाय्य कर सकता हूं?');
-    } else if (transcript.includes('tell me a joke') || transcript.includes('joke')) {
-      speak('I am so good at sleeping I can do it with my eyes closed!');
-    } else if (transcript.includes('thank you')) {
-      speak('कोई बात नहीं, आपका स्वागत है!');
-    } else if (transcript.includes('smart')) {
-      speak('सबसे होशियार व्यक्ति तो आप हैं!');
-    } else if (transcript.includes('fact')) {
-      speak('जानकारी के लिए एक मजेदार तथ्य: कुछ बिल्लियां हाथी की तरह दौड़ सकती हैं!');
-    } else if (transcript.includes('life')) {
-      speak('जीवन का अर्थ है खुशियों और साझा करने में!');
-    } else if (transcript.includes('love')) {
-      speak('love you too');
-    } else if (transcript.includes('about you')) {
-      speak('I can turn on and off switches anywhere in the world');
-    } else if (transcript.includes('time')) {
-      speakTime();
-    } else {
-      speak('मुझे माफ़ करें, मैं इस कमांड को समझ नहीं पाया।');
-    }
-  };
-
-  // Start voice recognition on button click
-  document.getElementById('startVoiceRecognition').addEventListener('click', () => {
-    recognition.start();
-    speak('Voice recognition started');
-    console.log('Voice recognition started');
-  });
-
-  // Stop/start recognition when tab visibility changes
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) {
-      recognition.stop();
-      console.log('Voice recognition stopped due to tab hidden');
-    } else {
-      recognition.start();
-      console.log('Voice recognition resumed');
-    }
-  });
-</script>
 </body>
 </html>
