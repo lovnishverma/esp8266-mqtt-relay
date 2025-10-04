@@ -4,17 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESP8266 Relay Control Center</title>
-  <!-- Favicon -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
-  <link rel="manifest" href="/favicon/site.webmanifest">
-  <link rel="mask-icon" href="/favicon/safari-pinned-tab.svg" color="#5bbad5">
-  <link rel="shortcut icon" href="/favicon/favicon.ico">
-  <meta name="msapplication-TileColor" content="#da532c">
-  <meta name="msapplication-config" content="/favicon/browserconfig.xml">
-  <meta name="theme-color" content="#ffffff">
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js "></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -198,6 +188,21 @@
       transform: none;
       box-shadow: none;
     }
+    .voice-button {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      margin-bottom: 15px;
+    }
+    .voice-button:hover {
+      box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+    }
+    .voice-button.active {
+      background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      animation: voicePulse 1.5s infinite;
+    }
+    @keyframes voicePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
     .stats {
       display: flex;
       justify-content: space-around;
@@ -256,15 +261,15 @@
         <span id="statusText">Relay is OFF</span>
       </div>
       <div>
-        <button class="control-button" id="startVoiceRecognition">
-  🎤 Start Voice Recognition
-</button>
-
+        <button class="control-button voice-button" id="startVoiceRecognition">
+          🎤 Start Voice Recognition
+        </button>
       </div>
       <br>
       <div>
-      <button class="toggle-btn" id="toggleBtn" onclick="toggleRelay()"></button>
-      </div> <br>
+        <button class="toggle-btn" id="toggleBtn" onclick="toggleRelay()"></button>
+      </div>
+      <br>
       <button class="control-button" id="controlBtn" onclick="toggleRelay()" disabled>
         <span id="btnText">Toggle Relay</span>
       </button>
@@ -282,7 +287,7 @@
     <div class="last-updated" id="lastUpdated">
       Never updated
     </div>
-     <div class="last-updated">
+    <div class="last-updated">
       Created by NIELIT Chandigarh.
     </div>
   </div>
@@ -300,6 +305,7 @@
     let toggleCount = 0;
     let startTime = Date.now();
     let client = null;
+    let isVoiceActive = false;
 
     // DOM elements
     const elements = {
@@ -313,7 +319,8 @@
       btnText: document.getElementById('btnText'),
       toggleCount: document.getElementById('toggleCount'),
       uptime: document.getElementById('uptime'),
-      lastUpdated: document.getElementById('lastUpdated')
+      lastUpdated: document.getElementById('lastUpdated'),
+      voiceBtn: document.getElementById('startVoiceRecognition')
     };
 
     // MQTT connection options
@@ -331,11 +338,13 @@
       updateConnectionStatus('connecting', 'Connecting...');
       try {
         client = mqtt.connect(MQTT_BROKER, options);
+        
         client.on("connect", () => {
           console.log("Connected to MQTT broker");
           isConnected = true;
           updateConnectionStatus('connected', 'Connected');
           elements.controlBtn.disabled = false;
+          
           client.subscribe(MQTT_TOPIC + '/status', (err) => {
             if (err) console.error('Subscribe error:', err);
           });
@@ -345,7 +354,7 @@
           if (topic === MQTT_TOPIC + '/status') {
             const status = message.toString();
             if (status === '0' || status === '1') {
-              relayState = status === '1'; // '1' means ON, '0' means OFF
+              relayState = status === '1';
               updateRelayDisplay();
             }
           }
@@ -384,27 +393,18 @@
     // Update relay display
     function updateRelayDisplay() {
       const isOn = relayState;
+      
       if (isOn) {
         document.body.classList.add('relay-on');
       } else {
         document.body.classList.remove('relay-on');
       }
+      
       elements.relayStatus.className = `relay-status ${isOn ? 'on' : 'off'}`;
       elements.powerIcon.className = `power-icon ${isOn ? 'on' : 'off'}`;
       elements.statusText.textContent = `Relay is ${isOn ? 'ON' : 'OFF'}`;
       elements.toggleBtn.className = `toggle-btn ${isOn ? 'on' : ''}`;
       elements.lastUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
-    }
-
-    // Audio feedback
-    const clickSound = new Audio('click.mp3');
-    clickSound.preload = 'auto';
-
-    function playClickSound() {
-      clickSound.currentTime = 0;
-      clickSound.play().catch(err => {
-        console.log('Audio play failed:', err);
-      });
     }
 
     // Toggle relay function
@@ -413,24 +413,24 @@
         alert('Not connected to MQTT broker');
         return;
       }
-      playClickSound();
+      
       elements.btnText.textContent = 'Sending...';
       elements.controlBtn.disabled = true;
 
       relayState = !relayState;
-
-      const payload = relayState ? "1" : "0"; // 🔥 Fixed inverted logic
+      const payload = relayState ? "1" : "0";
 
       client.publish(MQTT_TOPIC, payload, (err) => {
         if (err) {
           console.error('Publish error:', err);
-          relayState = !relayState; // Revert state on error
+          relayState = !relayState;
           alert('Failed to send command');
         } else {
           console.log(`Relay toggled: ${relayState ? 'ON' : 'OFF'}`);
           toggleCount++;
           elements.toggleCount.textContent = toggleCount;
         }
+        
         elements.btnText.textContent = 'Toggle Relay';
         elements.controlBtn.disabled = false;
         updateRelayDisplay();
@@ -452,92 +452,121 @@
       setInterval(updateUptime, 1000);
     }
 
+    // Voice Recognition Setup
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+
+      // Speak function
+      function speak(message) {
+        const synth = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(message);
+        synth.speak(utterance);
+      }
+
+      // Speak current time
+      function speakTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        speak(`The current time is ${timeString}`);
+      }
+
+      // Check MQTT relay status
+      function checkStatus() {
+        speak(`Right now relay is ${relayState ? 'ON' : 'OFF'}`);
+      }
+
+      // Voice command handler
+      recognition.onresult = function (event) {
+        const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+        console.log('Voice input:', transcript);
+
+        if (transcript.includes('turn on') || transcript.includes('on')) {
+          if (!relayState) toggleRelay();
+          speak('Turning relay on');
+        } else if (transcript.includes('turn off') || transcript.includes('off')) {
+          if (relayState) toggleRelay();
+          speak('Turning relay off');
+        } else if (transcript.includes('check status') || transcript.includes('status')) {
+          checkStatus();
+        } else if (transcript.includes('developer')) {
+          speak('This app is developed by NIELIT Chandigarh');
+        } else if (transcript.includes('hello')) {
+          speak('Hello! How can I help you?');
+        } else if (transcript.includes('how are you')) {
+          speak('I am doing well, thank you! How can I assist you?');
+        } else if (transcript.includes('tell me a joke') || transcript.includes('joke')) {
+          speak('I am so good at sleeping I can do it with my eyes closed!');
+        } else if (transcript.includes('thank you')) {
+          speak('You are welcome!');
+        } else if (transcript.includes('smart')) {
+          speak('Thank you for the compliment!');
+        } else if (transcript.includes('love')) {
+          speak('Thank you, I appreciate that!');
+        } else if (transcript.includes('about you')) {
+          speak('I can turn on and off switches anywhere in the world using MQTT');
+        } else if (transcript.includes('time')) {
+          speakTime();
+        } else {
+          speak('Sorry, I did not understand that command.');
+        }
+      };
+
+      recognition.onerror = function(event) {
+        console.error('Voice recognition error:', event.error);
+        if (event.error === 'no-speech') {
+          console.log('No speech detected');
+        }
+      };
+
+      recognition.onend = function() {
+        if (isVoiceActive && !document.hidden) {
+          recognition.start();
+        }
+      };
+
+      // Start/Stop voice recognition on button click
+      elements.voiceBtn.addEventListener('click', () => {
+        if (!isVoiceActive) {
+          recognition.start();
+          isVoiceActive = true;
+          elements.voiceBtn.classList.add('active');
+          elements.voiceBtn.textContent = '🎤 Stop Voice Recognition';
+          speak('Voice recognition started');
+          console.log('Voice recognition started');
+        } else {
+          recognition.stop();
+          isVoiceActive = false;
+          elements.voiceBtn.classList.remove('active');
+          elements.voiceBtn.textContent = '🎤 Start Voice Recognition';
+          speak('Voice recognition stopped');
+          console.log('Voice recognition stopped');
+        }
+      });
+
+      // Stop/start recognition when tab visibility changes
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden && isVoiceActive) {
+          recognition.stop();
+          console.log('Voice recognition paused (tab hidden)');
+        } else if (!document.hidden && isVoiceActive) {
+          recognition.start();
+          console.log('Voice recognition resumed (tab visible)');
+        }
+      });
+    } else {
+      elements.voiceBtn.disabled = true;
+      elements.voiceBtn.textContent = '🎤 Not Supported';
+      console.warn('Speech Recognition not supported in this browser');
+    }
+
     // Start the application
     init();
   </script>
-        <script>
-  // Voice Recognition Setup
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.lang = 'en-US';
-
-  // Speak function
-  function speak(message) {
-    const synth = window.speechSynthesis;
-    const utterance = new SpeechSynthesisUtterance(message);
-    synth.speak(utterance);
-  }
-
-  // Speak current time
-  function speakTime() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString();
-    speak(`The current time is ${timeString}`);
-  }
-
-  // Check MQTT relay status
-  function checkStatus() {
-    speak(`Right now relay is ${relayState ? 'ON' : 'OFF'}`);
-  }
-
-  // Voice command handler
-  recognition.onresult = function (event) {
-    const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-    console.log('Voice input:', transcript);
-
-    if (transcript.includes('turn on') || transcript.includes('on')) {
-      if (!relayState) toggleRelay();
-      speak('Turning relay on');
-    } else if (transcript.includes('turn off') || transcript.includes('off')) {
-      if (relayState) toggleRelay();
-      speak('Turning relay off');
-    } else if (transcript.includes('check status') || transcript.includes('status')) {
-      checkStatus();
-    } else if (transcript.includes('developer')) {
-      speak('इस ऐप का डेवलपर NIELIT ROPAR है');
-    } else if (transcript.includes('hello')) {
-      speak('हां भाई जी, बोलो?');
-    } else if (transcript.includes('how are you') || transcript.includes('kya haal hai')) {
-      speak('मैं ठीक हूं, धन्यवाद! आपका कैसे सहाय्य कर सकता हूं?');
-    } else if (transcript.includes('tell me a joke') || transcript.includes('joke')) {
-      speak('I am so good at sleeping I can do it with my eyes closed!');
-    } else if (transcript.includes('thank you')) {
-      speak('कोई बात नहीं, आपका स्वागत है!');
-    } else if (transcript.includes('smart')) {
-      speak('सबसे होशियार व्यक्ति तो आप हैं!');
-    } else if (transcript.includes('fact')) {
-      speak('जानकारी के लिए एक मजेदार तथ्य: कुछ बिल्लियां हाथी की तरह दौड़ सकती हैं!');
-    } else if (transcript.includes('life')) {
-      speak('जीवन का अर्थ है खुशियों और साझा करने में!');
-    } else if (transcript.includes('love')) {
-      speak('love you too');
-    } else if (transcript.includes('about you')) {
-      speak('I can turn on and off switches anywhere in the world');
-    } else if (transcript.includes('time')) {
-      speakTime();
-    } else {
-      speak('मुझे माफ़ करें, मैं इस कमांड को समझ नहीं पाया।');
-    }
-  };
-
-  // Start voice recognition on button click
-  document.getElementById('startVoiceRecognition').addEventListener('click', () => {
-    recognition.start();
-    speak('Voice recognition started');
-    console.log('Voice recognition started');
-  });
-
-  // Stop/start recognition when tab visibility changes
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) {
-      recognition.stop();
-      console.log('Voice recognition stopped due to tab hidden');
-    } else {
-      recognition.start();
-      console.log('Voice recognition resumed');
-    }
-  });
-</script>
 </body>
 </html>
